@@ -10,12 +10,10 @@ function foursquared_handle_authorization() {
   if (!isset($_GET['code'])) {
     drupal_set_message('Did not receive a code from Foursquare.', 'error');
   } else {
+    global $user;
+    
     // Handle the given code
     $code = $_GET['code'];
-    
-    // Save authorised state for user
-    global $user;
-    db_query('UPDATE {users} SET foursquared_authorized = 1 WHERE uid = :uid', array('uid' => $user->uid));
     
     // Our necessary variables
     global $base_url;
@@ -23,11 +21,20 @@ function foursquared_handle_authorization() {
     $redirect_uri = variable_get('foursquared_redirect_uri', $base_url . '/foursquared/authorize/');
     $secret = variable_get('foursquared_secret', '');
     
+    // Build URL
+    $fq_base_url = 'https://foursquare.com/oauth2/access_token?';
+    $variables = array();
+    $variables[] = "client_id=$client_id";
+    $variables[] = "client_secret=$secret";
+    $variables[] = "grant_type=authorization_code";
+    $variables[] = "redirect_uri=$redirect_uri";
+    $variables[] = "code=$code";
+    $auth_url = $fq_base_url . implode('&', $variables);
+    
     // Redirect to receive an access token
     // This may take a while.
     // TODO: make this into a task.
-    $response = file_get_contents("https://foursquare.com/oauth2/access_token?client_id=$client_id&client_secret=$secret&grant_type=authorization_code&redirect_uri=$redirect_uri&code=$code"
-    );
+    $response = file_get_contents($auth_url);
     if ($response) {
       $resp_inner = json_decode($response, true); // Screw objects.
       $access_token = $resp_inner['access_token'];
