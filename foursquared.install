@@ -10,12 +10,6 @@ function foursquared_schema_alter(&$schema) {
     'default' => NULL,
     'description' => 'Foursquare access token, given when authorized and authenticated.',
   );
-  $schema['users']['fields']['foursquared_authorized'] = array(
-    'type' => 'int',
-    'size' => 'tiny',
-    'default' => 0,
-    'description' => 'Foursquare authorized flag. Indicates whether the user has authorized the current application.',
-  );
 }
 
 /**
@@ -35,19 +29,6 @@ function foursquared_update_7001() {
   db_add_field( 'users', 'foursquared_access_token', $spec);
   $items[] = array(
     'query' => 'Added the foursquared_access_token column to the users table.',
-    'success' => TRUE
-  );
-  
-  // Add the Authorized flag column
-  $spec = array(
-    'type' => 'int',
-    'size' => 'tiny',
-    'default' => 0,
-    'description' => 'Foursquare authorized flag. Indicates whether the user has authorized the current application.',
-  ); 
-  db_add_field( 'users', 'foursquared_authorized', $spec);
-  $items[] = array(
-    'query' => 'Added the foursquared_authorized column to the users table.',
     'success' => TRUE
   );
   
