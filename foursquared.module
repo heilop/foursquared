@@ -232,6 +232,37 @@ function foursquared_theme($existing, $type, $theme, $path) {
 }
 
 /**
+ * Search venue form.
+ *
+ * @return array
+ * @author Maarten Jacobs
+ */
+function foursquared_venue_search_form() {
+  // The method of the form is GET. Like a 'real' search form.
+  $form['#method'] = 'get';
+  
+  // The query textfield. This should be upgraded to #type 'search', if enabled.
+  $query = '';
+  if (array_key_exists('query', $_GET)) {
+    $query = $_GET['query'];
+  }
+  $form['query'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Search venues'),
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#default_value' => $query,
+  );
+  
+  $form['search'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search'),
+  );
+  
+  return $form;
+}
+
+/**
  * Returns the page that gives a list of venues nearby
  *
  * @return string
@@ -244,21 +275,35 @@ function foursquared_page_nearby() {
   $has_token = (bool) $user->foursquared_access_token;
   if ($has_location && $has_token) {
     // Retrieve the venues through the API
-    $venues = foursquared_get_near_locations($user->foursquared_access_token, $user->foursquared_current_location);
+    $query = NULL;
+    if (array_key_exists('query', $_GET)) {
+      $query = $_GET['query'];
+    }
+    $venues = foursquared_get_near_locations($user->foursquared_access_token, $user->foursquared_current_location, $query);
     
     // Handle existence or non-existence of our response
-    if (!$venues) {
+    if ($venues === FALSE) {
       drupal_set_message("We're having some difficulties with retrieving venues from Foursquare. Please try again later or contact the admin of this website.");
     } else {
-      // Produce our content
-      $venue_content = array();
-      foreach ($venues as $venue) {
-        $venue_content[] = theme('venue_item', array('venue' => $venue));
-      }
+      
+      if (!count($venues)) {
+        // No venues found.
+        $content = '<p>No venues found from the current query.</p>';
+      } else {
+        // Produce our content
+        $venue_content = array();
+        foreach ($venues as $venue) {
+          $venue_content[] = theme('venue_item', array('venue' => $venue));
+        }
 
-      // Wrap container around our content.
-      $content = theme('venue_container', array('venues' => $venue_content));
-      return '<div>' . $content . '</div>';
+        // Wrap container around our content.
+        $content = theme('venue_container', array('venues' => $venue_content)); 
+      }
+      
+      // Retrieve the venue search form so we can actually filter venues down
+      $venue_form = drupal_render(drupal_get_form('foursquared_venue_search_form'));
+      
+      return '<div>' . $venue_form . $content . '</div>';
     }
   }
   else {

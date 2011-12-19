@@ -71,6 +71,11 @@ function foursquared_get_near_locations($token, $location, $search = NULL, $json
   // Add the access token
   $variables[] = 'oauth_token=' . $token;
   
+  // Add the search variable to the query
+  if ($search) {
+    $variables[] = 'query=' . $search;
+  }
+  
   // Create correct URL and retrieve our response
   $venue_url .= implode('&', $variables);
   $query_result = @file_get_contents($venue_url);
@@ -78,12 +83,16 @@ function foursquared_get_near_locations($token, $location, $search = NULL, $json
   // Check and double-check for content
   $venues = FALSE;
   if ($query_result) {
-    $venue_json = json_decode($query_result);
-    if (array_key_exists(0, $venue_json->response->groups)) {
+    $venue_response = json_decode($query_result);
+    if (array_key_exists(0, $venue_response->response->groups)) {
       // And now we have venues.
-      $venues = $venue_json->response->groups[0]->items;
+      $venues = $venue_response->response->groups[0]->items;
     }
   }
   
-  return $venues;
+  if ($json_output) {
+    drupal_json_output($venues);
+  } else {
+    return $venues;
+  }
 }
