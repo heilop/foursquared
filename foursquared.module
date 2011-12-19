@@ -28,6 +28,14 @@ function foursquared_menu() {
     'access arguments' => array('authorize foursquared'),
     'type' => MENU_CALLBACK,
   );
+  
+  $items['nearby'] = array(
+    'title' => 'Nearby',
+    'description' => 'Shows nearby locations of the user if the user has authenticated the current application.',
+    'page callback' => 'foursquared_page_nearby',
+    'access arguments' => array('authorize foursquared'),
+    'type' => MENU_NORMAL_ITEM,
+  );
 
   return $items;
 }
@@ -218,4 +226,67 @@ function foursquared_save_user_location($location) {
   );
   
   drupal_json_output(array('success' => TRUE));
+}
+
+/**
+ * Implements hook_theme().
+ */
+function foursquared_theme($existing, $type, $theme, $path) {
+  $mod_path = drupal_get_path('module', 'foursquared');
+  
+  return array(
+    'venue_container' => array(
+      'arguments' => array('venues' => array()),
+      'template' => 'venue_container',
+      'path' => $mod_path . '/templates'
+    ),
+    'venue_item' => array(
+      'arguments' => array('venue' => NULL),
+      'template' => 'venue_item',
+      'path' => $mod_path . '/templates'
+    ),
+  );
+}
+
+/**
+ * Returns the page that gives a list of checkins
+ *
+ * @return void
+ * @author Maarten Jacobs
+ */
+function foursquared_page_nearby() {
+  global $user;
+  
+  $has_location = (bool) $user->foursquared_current_location;
+  $has_token = (bool) $user->foursquared_access_token;
+  if ($has_location && $has_token) {
+    // Retrieve the venues through the API
+    $venues = foursquared_get_near_locations($user->foursquared_access_token, $user->foursquared_current_location);
+    
+    // Handle existence or non-existence of our response
+    if (!$venues) {
+      drupal_set_message("We're having some difficulties with retrieving venues from Foursquare. Please try again later or contact the admin of this website.");
+    } else {
+      // Produce our content
+      $venue_content = array();
+      foreach ($venues as $venue) {
+        $venue_content[] = theme('venue_item', array('venue' => $venue));
+      }
+
+      // Wrap container around our content.
+      $content = theme('venue_container', array('venues' => $venue_content));
+      return '<div>' . $content . '</div>';
+    }
+  }
+  else {
+    if (!$has_token) {
+      drupal_set_message("You haven't authenticated this application with Foursquare yet. Go to the edit page of your profile and connect with Foursquare please.", 'error');
+    }
+    if (!$has_location) {
+      drupal_set_message("We can't seem to find your location. If you haven't allowed tracking of your location, please allow it in your browser settings.", 'error');
+    }
+  }
+  
+  // If nothing else has been outputted, output our error messages.
+  return '<div>' . theme_status_messages(array('display' => '')) . '</div>';
 }
