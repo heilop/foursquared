@@ -1,0 +1,5 @@
+name = Foursquared
+description = Allows a user to authenticate Foursquare and allows the developer to hook into that data.
+core = 7.x
+package = Foursquared
+configure = admin/config/foursquared

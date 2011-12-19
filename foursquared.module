@@ -1,0 +1,180 @@
+<?php
+// Include our API functions
+require_once 'foursquared.api.inc';
+
+/**
+ * Implements hook_menu().
+ */
+function foursquared_menu() {
+  $items['admin/config/foursquared'] = array(
+    'title' => 'Foursquared Settings',
+    'description' => 'Configure API settings for Foursquared.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('foursquared_settings'),
+    'access arguments' => array('administer foursquared'),
+  );
+  
+  $items['foursquared/authorize'] = array(
+    'title' => 'Handles authorization of the current application to Foursquare.',
+    'page callback' => 'foursquared_handle_authorization',
+    'access arguments' => array('authorize foursquared'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function foursquared_permission() {
+  return array(
+    'authorize foursquared' =>  array(
+      'title' => t('Foursquared permissions'),
+      'description' => t('Authorize and authenticate with Foursquare.'),
+    ),
+  );
+}
+
+/**
+ * Provides the form to configure Foursquared.
+ *
+ * @return array
+ * @author Maarten Jacobs
+ */
+function foursquared_settings() {
+  // Get variables, if set
+  global $base_url;
+  $client_id = variable_get('foursquared_client_id', '');
+  $secret = variable_get('foursquared_secret', '');
+  $redirect_uri = variable_get('foursquared_redirect_uri', $base_url . '/foursquared/authorize/');
+  $connect_locations = variable_get('foursquared_connect_locations', array('edit_user'));
+  
+  $form['foursquared_client_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Foursquare Client ID'),
+    '#description' => t('The Client ID Foursquare provides you on registration. This is required for the authorisation process of Foursquare.'),
+    '#size' => 80,
+    '#maxlength' => 48,
+    '#default_value' => $client_id,
+  );
+  
+  $form['foursquared_secret'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Foursquare Secret'),
+    '#description' => t('The Secret Foursquare provides you on registration. This is required to request an access token of Foursquare.'),
+    '#size' => 80,
+    '#maxlength' => 48,
+    '#default_value' => $secret,
+  );
+  
+  $form['foursquared_redirect_uri'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Foursquare redirect URI'),
+    '#description' => t('The registered redirect URI of your Foursquare application. This is required to request an access token of Foursquare.'),
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#default_value' => $redirect_uri,
+  );
+  
+  $form['foursquared_connect_locations'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Foursquare Connect locations'),
+    '#description' => t('Disables or enables the locations where the Foursquare connect button should appear (automatically).'),
+    '#options' => array(
+      'edit_user' => 'Edit user page, when viewing own user.',
+      'view_user' => 'View user page, when viewing own user.'
+    ),
+    '#default_value' => $connect_locations,
+  );
+  
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_user_load().
+ */
+function foursquared_user_load($users) {
+  $result = db_query('SELECT uid, foursquared_access_token AS token, foursquared_authorized AS auth
+    FROM {users} 
+    WHERE uid IN (:uids)', 
+    array(':uids' => array_keys($users))
+  );
+  foreach ($result as $record) {
+    $users[$record->uid]->foursquared = array(
+      'authorized' => $record->auth !== 1 ? FALSE : TRUE,
+      'access_token' => $record->token
+    );
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function foursquared_form_alter(&$form, &$form_state, $form_id) {
+  $connect_locations = variable_get('foursquared_connect_locations', array('edit_user'));
+  global $user;
+  
+  switch ($form_id) {
+    case 'user_profile_form':
+      // Is the Edit_User form enabled and is the current user editing themselves?
+      $edit_user_allowed = $connect_locations['edit_user'] == 'edit_user';
+      $connected = (bool) $user->foursquared_access_token;
+      if ($edit_user_allowed && $form['#user']->uid && $form['#user']->uid == $user->uid) {
+        $form['foursquared'] = array(
+          '#type' => 'fieldset',
+          '#title' => t('Foursquare'),
+          '#collapsible' => TRUE,
+          '#collapsed' => FALSE,
+          '#access' => TRUE,
+        );
+        
+        if (!$connected) {
+          $form['foursquared']['connect'] = array(
+            '#value' => '',
+            '#prefix' => '<div>' . foursquared_get_authorization_url(),
+            '#suffix' => '</div>',
+          );
+        } else {
+          $form['foursquared']['connect'] = array(
+            '#value' => '',
+            '#prefix' => '<p>Successfully connected to Foursquare.</p>',
+          );
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Returns the URL to start authorization of Foursquare.
+ *
+ * @return void
+ * @author Maarten Jacobs
+ */
+function foursquared_get_authorization_url() {
+  global $base_url;
+  $client_id = variable_get('foursquared_client_id', FALSE);
+  $redirect_uri = variable_get('foursquared_redirect_uri', $base_url . '/');
+  
+  if (!$client_id) {
+    
+    // TODO: Correct error handling of sites without a client ID
+    drupal_set_message('No Client ID has been set for this site. Please enter this information in the settings and try again.');
+    drupal_goto('');
+    
+  } else {
+    $base = 'https://foursquare.com/oauth2/authenticate';
+    $text = '<img src="' 
+        . $base_url . '/' . drupal_get_path('module', 'foursquared') 
+        . '/images/connect/connect-blue.png" />';
+    return l($text, $base, array(
+      'html' => TRUE,
+      'query' => array(
+        'client_id' => $client_id,
+        'redirect_uri' => $redirect_uri,
+        'response_type' => 'code'
+      )
+    ));
+  }
+}

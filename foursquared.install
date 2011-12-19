@@ -1,0 +1,55 @@
+<?php
+/**
+ * Implements hook_schema_alter().
+ */
+function foursquared_schema_alter(&$schema) {
+  // Add field to existing schema.
+  $schema['users']['fields']['foursquared_access_token'] = array(
+    'type' => 'varchar',
+    'length' => 500, // The spec is rather undefined on this subject. > 255 apparently.
+    'default' => NULL,
+    'description' => 'Foursquare access token, given when authorized and authenticated.',
+  );
+  $schema['users']['fields']['foursquared_authorized'] = array(
+    'type' => 'int',
+    'size' => 'tiny',
+    'default' => 0,
+    'description' => 'Foursquare authorized flag. Indicates whether the user has authorized the current application.',
+  );
+}
+
+/**
+ * Adds the custom columns for the foursquared module.
+ *
+ * @return array
+ * @author Maarten Jacobs
+ */
+function foursquared_update_7001() {
+  // Add the Access Token column
+  $spec = array(
+    'type' => 'varchar',
+    'length' => 500, // The spec is rather undefined on this subject. > 255 apparently.
+    'default' => NULL,
+    'description' => 'Foursquare access token, given when authorized and authenticated.',
+  ); 
+  db_add_field( 'users', 'foursquared_access_token', $spec);
+  $items[] = array(
+    'query' => 'Added the foursquared_access_token column to the users table.',
+    'success' => TRUE
+  );
+  
+  // Add the Authorized flag column
+  $spec = array(
+    'type' => 'int',
+    'size' => 'tiny',
+    'default' => 0,
+    'description' => 'Foursquare authorized flag. Indicates whether the user has authorized the current application.',
+  ); 
+  db_add_field( 'users', 'foursquared_authorized', $spec);
+  $items[] = array(
+    'query' => 'Added the foursquared_authorized column to the users table.',
+    'success' => TRUE
+  );
+  
+  return $items;
+}
