@@ -108,23 +108,6 @@ function foursquared_settings() {
 }
 
 /**
- * Implements hook_user_load().
- */
-function foursquared_user_load($users) {
-  $result = db_query('SELECT uid, foursquared_access_token AS token, foursquared_authorized AS auth
-    FROM {users} 
-    WHERE uid IN (:uids)', 
-    array(':uids' => array_keys($users))
-  );
-  foreach ($result as $record) {
-    $users[$record->uid]->foursquared = array(
-      'authorized' => $record->auth !== 1 ? FALSE : TRUE,
-      'access_token' => $record->token
-    );
-  }
-}
-
-/**
  * Implements hook_form_alter().
  */
 function foursquared_form_alter(&$form, &$form_state, $form_id) {
