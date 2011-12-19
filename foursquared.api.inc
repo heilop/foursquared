@@ -51,10 +51,13 @@ function foursquared_handle_authorization() {
 }
 
 /**
- * Retrieves a list of nearby locations from Foursquare
+ * Retrieves a list of nearby locations from Foursquare.
  *
+ * @param string $token
+ * @param string $location
  * @param string $search 
- * @return void
+ * @param bool $json_output
+ * @return mixed
  * @author Maarten Jacobs
  */
 function foursquared_get_near_locations($token, $location, $search = NULL, $json_output = FALSE) {

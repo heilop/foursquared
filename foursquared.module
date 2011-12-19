@@ -232,9 +232,9 @@ function foursquared_theme($existing, $type, $theme, $path) {
 }
 
 /**
- * Returns the page that gives a list of checkins
+ * Returns the page that gives a list of venues nearby
  *
- * @return void
+ * @return string
  * @author Maarten Jacobs
  */
 function foursquared_page_nearby() {
