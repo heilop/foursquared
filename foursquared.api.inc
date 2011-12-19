@@ -49,3 +49,38 @@ function foursquared_handle_authorization() {
   }  
   drupal_goto(''); // Go back to the homepage
 }
+
+/**
+ * Retrieves a list of nearby locations from Foursquare
+ *
+ * @param string $search 
+ * @return void
+ * @author Maarten Jacobs
+ */
+function foursquared_get_near_locations($token, $location, $search = NULL, $json_output = FALSE) {
+  $venue_url = 'https://api.foursquare.com/v2/venues/search?';
+  
+  $variables = array();
+  
+  // Add the location of the current users
+  $variables[] = 'll=' . $location;
+    
+  // Add the access token
+  $variables[] = 'oauth_token=' . $token;
+  
+  // Create correct URL and retrieve our response
+  $venue_url .= implode('&', $variables);
+  $query_result = @file_get_contents($venue_url);
+  
+  // Check and double-check for content
+  $venues = FALSE;
+  if ($query_result) {
+    $venue_json = json_decode($query_result);
+    if (array_key_exists(0, $venue_json->response->groups)) {
+      // And now we have venues.
+      $venues = $venue_json->response->groups[0]->items;
+    }
+  }
+  
+  return $venues;
+}
