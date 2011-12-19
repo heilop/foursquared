@@ -6,8 +6,8 @@ In short: provides integration with Foursquare for Drupal 7.x.
 Dependencies
 ------------
 
-* jQuery. It saves a lifetime of development work.
-* HTML5. If you want to check in that is.
+* __jQuery__ (it saves a lifetime of development work)
+* __HTML5__ (_If_ you want to check in based on browser location)
 
 Setup
 -----
@@ -20,11 +20,13 @@ Current features
 ----------------
 
 * Authentication/authorization with Foursquare
+* Logging the user's current location
+* Retrieving nearby venues based on current location
 
 Wanted list of features
 -----------------------
 
-* AJAX authentication
-* Retrieval and theming of Check-ins
-* Logging the user's current location
-* Checking in
+* AJAX authentication.
+* Retrieval and theming of Check-ins.
+* Logging the user's current location, _but_ falling back on IP-based location.
+* Checking in.
