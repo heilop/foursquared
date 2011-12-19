@@ -20,6 +20,14 @@ function foursquared_menu() {
     'access arguments' => array('authorize foursquared'),
     'type' => MENU_CALLBACK,
   );
+  
+  $items['foursquared/location/%'] = array(
+    'title' => 'Handles authorization of the current application to Foursquare.',
+    'page callback' => 'foursquared_save_user_location',
+    'page arguments' => array(2),
+    'access arguments' => array('authorize foursquared'),
+    'type' => MENU_CALLBACK,
+  );
 
   return $items;
 }
@@ -117,6 +125,8 @@ function foursquared_form_alter(&$form, &$form_state, $form_id) {
   
   switch ($form_id) {
     case 'user_profile_form':
+      foursquared_add_location_save_js();
+    
       // Is the Edit_User form enabled and is the current user editing themselves?
       $edit_user_allowed = $connect_locations['edit_user'] == 'edit_user';
       $connected = (bool) $user->foursquared_access_token;
@@ -177,4 +187,35 @@ function foursquared_get_authorization_url() {
       )
     ));
   }
+}
+
+/**
+ * Adds the JS files and inline code to activate the logging of location.
+ *
+ * @return void
+ * @author Maarten Jacobs
+ */
+function foursquared_add_location_save_js() {
+  drupal_add_js(drupal_get_path('module', 'foursquared') . '/js/foursquared_location.js');
+}
+
+/**
+ * Handles the async (or sync) request to save a user's current location
+ *
+ * @param string $uid 
+ * @param string $location 
+ * @return void
+ * @author Maarten Jacobs
+ */
+function foursquared_save_user_location($location) {
+  global $user;
+  db_query(
+    'UPDATE {users} SET foursquared_current_location = :location WHERE uid = :uid',
+    array(
+      'uid' => $user->uid,
+      'location' => $location
+    )
+  );
+  
+  drupal_json_output(array('success' => TRUE));
 }

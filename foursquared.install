@@ -10,6 +10,12 @@ function foursquared_schema_alter(&$schema) {
     'default' => NULL,
     'description' => 'Foursquare access token, given when authorized and authenticated.',
   );
+  $schema['users']['fields']['foursquared_current_location'] = array(
+    'type' => 'varchar',
+    'length' => 50, // The spec is rather undefined on this subject. > 255 apparently.
+    'default' => NULL,
+    'description' => 'Current location of the user retrieved with HTML5 geolocation.',
+  );
 }
 
 /**
@@ -19,16 +25,39 @@ function foursquared_schema_alter(&$schema) {
  * @author Maarten Jacobs
  */
 function foursquared_update_7001() {
-  // Add the Access Token column
+  // Add the Current Location column
   $spec = array(
     'type' => 'varchar',
-    'length' => 500, // The spec is rather undefined on this subject. > 255 apparently.
+    'length' => 50,
     'default' => NULL,
-    'description' => 'Foursquare access token, given when authorized and authenticated.',
+    'description' => 'Current location of the user retrieved with HTML5 geolocation.',
   ); 
-  db_add_field( 'users', 'foursquared_access_token', $spec);
+  db_add_field( 'users', 'foursquared_current_location', $spec);
   $items[] = array(
-    'query' => 'Added the foursquared_access_token column to the users table.',
+    'query' => 'Added the foursquared_current_location column to the users table.',
+    'success' => TRUE
+  );
+  
+  return $items;
+}
+
+/**
+ * Adds the custom columns for the foursquared module.
+ *
+ * @return array
+ * @author Maarten Jacobs
+ */
+function foursquared_update_7002() {
+  // Add the Current Location column
+  $spec = array(
+    'type' => 'varchar',
+    'length' => 50,
+    'default' => NULL,
+    'description' => 'Current location of the user retrieved with HTML5 geolocation.',
+  ); 
+  db_add_field( 'users', 'foursquared_current_location', $spec);
+  $items[] = array(
+    'query' => 'Added the foursquared_current_location column to the users table.',
     'success' => TRUE
   );
   

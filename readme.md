@@ -3,6 +3,12 @@ Foursquared Drupal Module
 
 In short: provides integration with Foursquare for Drupal 7.x.
 
+Dependencies
+------------
+
+* jQuery. It saves a lifetime of development work.
+* HTML5. If you want to check in that is.
+
 Setup
 -----
 
@@ -20,3 +26,5 @@ Wanted list of features
 
 * AJAX authentication
 * Retrieval and theming of Check-ins
+* Logging the user's current location
+* Checking in
