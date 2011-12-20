@@ -22,7 +22,8 @@ Current features
 
 * Authentication/authorization with Foursquare
 * Logging the user's current location
-* Retrieving nearby venues based on current location
+* Retrieving nearby venues based on current location by HTML5 Geolocation API
+* Retrieving current Foursquare user and friends of user
 
 Wanted list of features
 -----------------------
