@@ -64,7 +64,7 @@ function foursquared_settings() {
   $client_id = variable_get('foursquared_client_id', '');
   $secret = variable_get('foursquared_secret', '');
   $redirect_uri = variable_get('foursquared_redirect_uri', $base_url . '/foursquared/authorize/');
-  $connect_locations = variable_get('foursquared_connect_locations', array('edit_user'));
+  $connect_locations = variable_get('foursquared_connect_locations', array('edit_user' => 'edit_user'));
   
   $form['foursquared_client_id'] = array(
     '#type' => 'textfield',
@@ -111,7 +111,7 @@ function foursquared_settings() {
  * Implements hook_form_alter().
  */
 function foursquared_form_alter(&$form, &$form_state, $form_id) {
-  $connect_locations = variable_get('foursquared_connect_locations', array('edit_user'));
+  $connect_locations = variable_get('foursquared_connect_locations', array('edit_user' => 'edit_user'));
   global $user;
   
   switch ($form_id) {
@@ -119,7 +119,7 @@ function foursquared_form_alter(&$form, &$form_state, $form_id) {
       foursquared_add_location_save_js();
     
       // Is the Edit_User form enabled and is the current user editing themselves?
-      $edit_user_allowed = $connect_locations['edit_user'] == 'edit_user';
+      $edit_user_allowed = array_key_exists('edit_user', $connect_locations) && $connect_locations['edit_user'] == 'edit_user';
       $connected = (bool) $user->foursquared_access_token;
       if ($edit_user_allowed && $form['#user']->uid && $form['#user']->uid == $user->uid) {
         $form['foursquared'] = array(
