@@ -15,6 +15,7 @@ Setup
 1. Clone or download the module into your modules folder of sites (or contrib, if you use Features (<3))
 2. Register your application on Foursquare if you haven't already
 3. Enter your client ID, Secret and registered URI callback on the settings page of this module.
+4. Set permissions for your user to authorize foursquare
 
 Current features
 ----------------
