@@ -68,32 +68,30 @@ function foursquared_handle_authorization() {
  * @author Maarten Jacobs
  */
 function foursquared_get_near_locations($token, $location, $search = NULL, $json_output = FALSE) {
-  $venue_url = 'https://api.foursquare.com/v2/venues/search?';
   
-  $variables = array();
-  
-  // Add the location of the current users
-  $variables[] = 'll=' . $location;
-    
-  // Add the access token
-  $variables[] = 'oauth_token=' . $token;
-  
+  // Build request
+  $variables = array(
+    'll=' . $location
+  );
   // Add the search variable to the query
   if ($search) {
     $variables[] = 'query=' . $search;
   }
   
-  // Create correct URL and retrieve our response
-  $venue_url .= implode('&', $variables);
-  $query_result = @file_get_contents($venue_url);
+  // Send request
+  $query_result = _foursquared_make_request(
+    'https://api.foursquare.com/v2/venues/search?',
+    $variables,
+    $token
+  );
   
   // Check and double-check for content
   $venues = FALSE;
   if ($query_result) {
     $venue_response = json_decode($query_result);
-    if (array_key_exists(0, $venue_response->response->groups)) {
+    if (is_array($venue_response->response->venues)) {
       // And now we have venues.
-      $venues = $venue_response->response->groups[0]->items;
+      $venues = $venue_response->response->venues;
     }
   }
   
@@ -101,5 +99,143 @@ function foursquared_get_near_locations($token, $location, $search = NULL, $json
     drupal_json_output($venues);
   } else {
     return $venues;
+  }
+}
+
+/**
+ * Given a valid access token, returns a user object that represents the user on Foursquare.
+ *
+ * @param string $token 
+ * @return mixed
+ * @author Maarten Jacobs
+ */
+function foursquared_get_self($token) {
+  // Simple caching of self retrieval
+  static $self;
+  
+  if (!is_object($self)) {
+    // Build and send request
+    $query_result = _foursquared_make_request(
+      'https://api.foursquare.com/v2/users/self',
+      array(),
+      $token
+    );
+
+    // Return appropriate result
+    if ($query_result) {
+      // Return the inner user object
+      $response = json_decode($query_result);
+      $self = $response->response->user;
+    } else {
+      return FALSE;
+    }
+  } 
+  
+  return $self;
+}
+
+/**
+ * Returns the Foursquare friends of a user.
+ *
+ * @param string $token
+ * @param int $user_id 
+ * @return mixed
+ * @author Maarten Jacobs
+ */
+function foursquared_get_friends($token, $user_id) {
+  
+  // Build and send request
+  $parsed_url = sprintf('https://api.foursquare.com/v2/users/%d/friends', $user_id);
+  $request = _foursquared_make_request(
+    $parsed_url,
+    array(),
+    $token
+  );
+  
+  // Deal with response
+  if (!$request) {
+    return FALSE;
+  } else {
+    $decoded_response = json_decode($request);
+    return $decoded_response->response->friends->items;
+  }
+  
+}
+
+/**
+ * Wrapper function for get_friends with current Foursquare user.
+ *
+ * @param string $token 
+ * @return mixed
+ * @author Maarten Jacobs
+ */
+function foursquared_get_own_friends($token) {
+  
+  // Get current foursquare user
+  $curr_user = foursquared_get_self($token);
+  if (!$curr_user) {
+    return FALSE;
+  }
+  
+  $user_id = $curr_user->id;
+  $friends = foursquared_get_friends($token, $user_id);
+  
+  if (!$friends) {
+    return FALSE;
+  } else {
+    return $friends;
+  }
+  
+}
+
+/**
+ * Makes a request to the Foursquare API.
+ * The token can be false or evaluate to false and will not be used if so.
+ * Returns FALSE on error and JSON (string) result on success.
+ *
+ * @param string $req_url 
+ * @param array $variables 
+ * @param string $token 
+ * @return mixed
+ * @author Maarten Jacobs
+ */
+function _foursquared_make_request($req_url, $variables, $token = FALSE) {
+  // Type forcing
+  if (!is_string($req_url) || strlen($req_url) === 0) {
+    return FALSE;
+  }
+  if (!is_array($variables)) {
+    $variables = array();
+  }
+  if ($token == FALSE && $token !== FALSE) {
+    $token = FALSE;
+  }
+  if ($token !== FALSE && !is_string($token)) {
+    return FALSE;
+  }
+  
+  // Append '?' to the request url if it doesn't end in '?'
+  $req_url_len = strlen($req_url);
+  if ($req_url[$req_url_len - 1] !== '?') {
+    $req_url .= '?';
+  }
+  
+  // Add the token variable of the user, if any
+  if ($token !== FALSE) {
+    $variables[] = 'oauth_token=' . $token;
+  }
+  
+  // Add the version variable, to prevent sudden deprecated functions
+  $variables[] = 'v=20111220';
+  
+  // Build and use full request url
+  $full_req_url = $req_url . implode('&', $variables);
+  $query_result = @file_get_contents($full_req_url);
+  
+  if (!$query_result) {
+    // We have an error :(
+    return FALSE;
+  } else {
+    return $query_result;
   }
 }
