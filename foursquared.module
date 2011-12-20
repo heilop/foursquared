@@ -161,8 +161,8 @@ function foursquared_get_authorization_url() {
   if (!$client_id) {
     
     // TODO: Correct error handling of sites without a client ID
-    drupal_set_message('No Client ID has been set for this site. Please enter this information in the settings and try again.');
-    drupal_goto('');
+    // drupal_set_message('No Client ID has been set for this site. Please enter this information in the settings and try again.');
+    return '<p>The current site is not registered on Foursquare yet.</p>';
     
   } else {
     $base = 'https://foursquare.com/oauth2/authenticate';
